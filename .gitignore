@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+memory.json
+*.log
+
+# Node.js
+node_modules/
+dist/
+.DS_Store
+
+# Project specific
+rag_index/
+rag_docs/
+temp/
