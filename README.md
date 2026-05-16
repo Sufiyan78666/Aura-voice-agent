@@ -4,6 +4,16 @@ A premium, real-time voice-controlled AI assistant designed for a seamless, "Sir
 
 ![Aura Dashboard](./dashboard_preview.png)
 
+## 🖥️ Dashboard & Interface
+
+The Aura Dashboard provides a real-time overview of the agent's state and capabilities:
+
+- **🎙️ Core Interaction**: Large central voice visualization and a "Start Agent" toggle.
+- **🛠️ Registered Tools**: Real-time status indicators for integrated tools (Weather, Alarms, RAG, etc.).
+- **📜 Observation Log**: Live telemetry and execution tracing of the agent's thoughts and actions.
+- **⚙️ System Info**: Quick glance at the current stack (Whisper Small, Edge-TTS, Gemma 4).
+
+
 ## ✨ Features
 
 - **🧠 Persistent Memory**: Remembers your name, preferences, and past conversations across sessions.
