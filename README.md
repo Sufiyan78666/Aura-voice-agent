@@ -56,4 +56,4 @@ npm run dev
 ```
 
 ## 📝 License
-MIT License. Feel free to use and modify!
+Apache 2.0 License. Feel free to use and modify!
