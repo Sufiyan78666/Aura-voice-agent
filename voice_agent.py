@@ -36,8 +36,10 @@ def load_env_file(path=".env"):
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip().strip('"').strip("'")
-            if key and key not in os.environ:
-                os.environ[key] = value
+            if key:
+                # Overwrite if missing OR if currently empty string
+                if key not in os.environ or not os.environ[key].strip():
+                    os.environ[key] = value
 
 load_env_file()
 
@@ -117,12 +119,10 @@ print("Loading Whisper model...")
 stt_model = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8")
 print("Whisper ready!")
 
-if not OLLAMA_API_KEY:
-    raise RuntimeError("OLLAMA_API_KEY is not set in your .env file.")
-
+headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else None
 llm_client = Client(
     host=OLLAMA_HOST,
-    headers={"Authorization": "Bearer " + OLLAMA_API_KEY}
+    headers=headers
 )
 
 # ─────────────────────────────────────────────────────────────

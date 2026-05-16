@@ -17,7 +17,10 @@ def load_env_file(path=".env"):
             if not line or line.startswith("#") or "=" not in line: continue
             key, value = line.split("=", 1)
             key, value = key.strip(), value.strip().strip('"').strip("'")
-            if key and key not in os.environ: os.environ[key] = value
+            if key:
+                # Overwrite if missing OR if currently empty string
+                if key not in os.environ or not os.environ[key].strip():
+                    os.environ[key] = value
 
 load_env_file()
 
@@ -110,7 +113,8 @@ def _run_email_unread():
 
 def _run_send_email(text):
     from ollama import Client
-    client = Client(host=OLLAMA_HOST, headers={"Authorization": f"Bearer {OLLAMA_API_KEY or ''}"})
+    headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else None
+    client = Client(host=OLLAMA_HOST, headers=headers)
     prompt = f"Extract recipient email, subject, and body from the text. Return JSON only: {{\"to\": \"...\", \"subject\": \"...\", \"body\": \"...\"}}. Text: {text}"
     try:
         res = client.chat(model=OLLAMA_MODEL, messages=[{"role":"user", "content":prompt}])
@@ -213,7 +217,8 @@ def detect_tool(text):
 def summarize_search(query, results, lang="en", history=None):
     """Use LLM to clean up noisy search results with conversation context."""
     from ollama import Client
-    client = Client(host=OLLAMA_HOST, headers={"Authorization": f"Bearer {OLLAMA_API_KEY or ''}"})
+    headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else None
+    client = Client(host=OLLAMA_HOST, headers=headers)
     
     messages = history or []
     # Identify the user's name from history if available to help the summarizer
@@ -248,7 +253,8 @@ def summarize_search(query, results, lang="en", history=None):
 def llm_chat(text, lang="en", history=None):
     try:
         from ollama import Client
-        client = Client(host=OLLAMA_HOST, headers={"Authorization": f"Bearer {OLLAMA_API_KEY or ''}"})
+        headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else None
+        client = Client(host=OLLAMA_HOST, headers=headers)
         
         # history already contains the latest user message from handler()
         messages = list(history)
@@ -289,7 +295,8 @@ async def handler(ws):
                     
                     if awaiting_spelling:
                         from ollama import Client
-                        client = Client(host=OLLAMA_HOST, headers={"Authorization": f"Bearer {OLLAMA_API_KEY or ''}"})
+                        headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else None
+                        client = Client(host=OLLAMA_HOST, headers=headers)
                         prompt = f"The user just spelled out an email address letter by letter: '{text}'. Convert it into a valid email address string. Return ONLY the email address. Example: 's u f i y a n' -> 'sufiyan'. If domain is missing, add @gmail.com."
                         await ws.send(json.dumps({"type":"status","status":"processing"}))
                         res = await asyncio.to_thread(client.chat, model=OLLAMA_MODEL, messages=[{"role":"user", "content":prompt}])
