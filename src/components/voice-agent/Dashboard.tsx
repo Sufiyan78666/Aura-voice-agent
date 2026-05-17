@@ -129,6 +129,32 @@ export function Dashboard() {
               setStatus("idle");
             }
           }
+        } else if (msg.type === "alarm") {
+          const label = msg.label || "Alarm";
+          addLog("info", `🔔 Alarm: ${label}`);
+          // Play alarm sound via Web Audio API
+          const ctx = new AudioContext();
+          const playBeep = (time: number) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            osc.type = "sine";
+            gain.gain.setValueAtTime(0.8, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
+            osc.start(time);
+            osc.stop(time + 0.4);
+          };
+          // Play 3 beeps
+          playBeep(ctx.currentTime);
+          playBeep(ctx.currentTime + 0.5);
+          playBeep(ctx.currentTime + 1.0);
+          // Also speak via TTS
+          if (!isMuted) {
+            ttsQueueRef.current.push(`Alarm! ${label}!`);
+            processTTSQueue();
+          }
         } else if (msg.type === "error") {
           addLog("error", msg.text);
           setStatus("idle");
