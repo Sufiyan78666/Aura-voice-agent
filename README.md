@@ -49,6 +49,8 @@ The Aura Dashboard provides a real-time overview of the agent's state and capabi
 ---
 
 ## 🚀 Deployment Architecture
+
+```text
 User Browser
 │
 ├──► Cloudflare Pages (React Frontend)
@@ -67,6 +69,7 @@ User Browser
 ├──► Tavily API (Web Search)
 ├──► Gmail API (Email)
 └──► Langfuse (Observability)
+```
 
 
 ---
