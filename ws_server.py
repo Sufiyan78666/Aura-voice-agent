@@ -103,6 +103,54 @@ def init_profile_table():
     except Exception as e:
         print(f"⚠️ Profile table error: {e}")
 
+def init_docs_table():
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS documents (
+                        name TEXT PRIMARY KEY,
+                        data BYTEA NOT NULL,
+                        uploaded_at TIMESTAMP DEFAULT NOW()
+                    )
+                """)
+            conn.commit()
+        print("✅ Documents table ready.")
+    except Exception as e:
+        print(f"⚠️ Docs table error: {e}")
+
+def save_doc_to_db(name: str, data: bytes):
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO documents (name, data) VALUES (%s, %s)
+                    ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data
+                """, (name, psycopg2.Binary(data)))
+            conn.commit()
+        print(f"💾 Saved doc to DB: {name}")
+    except Exception as e:
+        print(f"⚠️ Doc save error: {e}")
+
+def restore_docs_from_db():
+    """On startup, restore all docs from PostgreSQL to /tmp/rag_docs."""
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT name, data FROM documents")
+                rows = cur.fetchall()
+        if not rows:
+            return
+        os.makedirs(RAG_DOCS_DIR, exist_ok=True)
+        for name, data in rows:
+            filepath = os.path.join(RAG_DOCS_DIR, name)
+            with open(filepath, "wb") as f:
+                f.write(bytes(data))
+            print(f"📄 Restored doc: {name}")
+        print(f"✅ Restored {len(rows)} document(s) from DB.")
+    except Exception as e:
+        print(f"⚠️ Doc restore error: {e}")
+
 def save_profile(key: str, value: str):
     try:
         with get_db_conn() as conn:
@@ -499,10 +547,12 @@ async def handler(ws):
                     name = msg.get("name")
                     data = msg.get("data")
                     import base64
+                    raw_bytes = base64.b64decode(data)
                     os.makedirs(RAG_DOCS_DIR, exist_ok=True)
                     filepath = os.path.join(RAG_DOCS_DIR, name)
                     with open(filepath, "wb") as f:
-                        f.write(base64.b64decode(data))
+                       f.write(raw_bytes)
+                    save_doc_to_db(name, raw_bytes)  # ← ADD: persist to PostgreSQL
                     print(f"📥 Saved uploaded document: {name}")
                     from rag_tool import build_index
                     await asyncio.to_thread(build_index, RAG_DOCS_DIR, RAG_INDEX_DIR)
@@ -527,6 +577,8 @@ async def handler(ws):
 async def main():
     init_db()
     init_profile_table() 
+    init_docs_table()        # ← ADD
+    restore_docs_from_db()  
     from alarm_tool import restore_alarms
     restore_alarms() 
     print(f"\n  ╔══════════════════════════════════════════╗")
