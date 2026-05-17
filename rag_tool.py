@@ -457,13 +457,15 @@ def _get_embed_model():
         try:
             from llama_index.embeddings.huggingface import HuggingFaceEmbedding
             print(f"🔢 Embedding: HuggingFace ({EMBED_MODEL})")
-            return HuggingFaceEmbedding(model_name=EMBED_MODEL, cache_folder="./hf_cache")
-        except ImportError:
-            print("⚠️  HuggingFace not installed, using Ollama.")
+            return HuggingFaceEmbedding(
+                model_name=EMBED_MODEL,
+                cache_folder="/tmp/hf_cache"
+            )
+        except ImportError as e:
+            print(f"⚠️  HuggingFace import failed: {e}")
     from llama_index.embeddings.ollama import OllamaEmbedding
     print(f"🔢 Embedding: Ollama ({EMBED_MODEL})")
     return OllamaEmbedding(model_name=EMBED_MODEL, base_url=OLLAMA_LOCAL_URL)
-
 
 def _get_llm(ollama_host: str, ollama_model: str, api_key: Optional[str] = None):
     from llama_index.llms.ollama import Ollama
