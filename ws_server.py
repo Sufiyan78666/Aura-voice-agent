@@ -54,6 +54,13 @@ def init_db():
     print("✅ PostgreSQL memory initialized.")
 
 def load_memory():
+    profile = load_profile()
+    profile_text = ""
+    if profile.get("name"):
+        profile_text = f"\nThe user's name is {profile['name']}. Always address them by name."
+
+    system_prompt = SYSTEM_PROMPT + profile_text
+
     try:
         with get_db_conn() as conn:
             with conn.cursor() as cur:
@@ -61,12 +68,14 @@ def load_memory():
                 row = cur.fetchone()
                 if row:
                     history = row[0]
-                    if not history or history[0].get("role") != "system":
-                        history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+                    if history and history[0].get("role") == "system":
+                        history[0]["content"] = system_prompt
+                    else:
+                        history.insert(0, {"role": "system", "content": system_prompt})
                     return history
     except Exception as e:
         print(f"⚠️ DB load error: {e}")
-    return [{"role": "system", "content": SYSTEM_PROMPT}]
+    return [{"role": "system", "content": system_prompt}]
 
 def save_memory(history):
     try:
@@ -80,6 +89,57 @@ def save_memory(history):
     except Exception as e:
         print(f"⚠️ DB save error: {e}")
 
+def init_profile_table():
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS user_profile (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
+                    )
+                """)
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ Profile table error: {e}")
+
+def save_profile(key: str, value: str):
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO user_profile (key, value) VALUES (%s, %s)
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+                """, (key, value))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ Profile save error: {e}")
+
+def load_profile() -> dict:
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT key, value FROM user_profile")
+                return dict(cur.fetchall())
+    except:
+        return {}
+
+def extract_and_save_profile(text: str):
+    patterns = [
+        r"my name is ([a-zA-Z]+)",
+        r"call me ([a-zA-Z]+)",
+        r"i am ([a-zA-Z]+)",
+        r"i'm ([a-zA-Z]+)",
+        r"mera naam ([a-zA-Z]+)",
+        r"mujhe ([a-zA-Z]+) bulao",
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, text.lower())
+        if m:
+            name = m.group(1).capitalize()
+            save_profile("name", name)
+            print(f"👤 Saved user name: {name}")
+            break
 
 SYSTEM_PROMPT = """You are a helpful AI voice assistant for Indian users.
 
@@ -429,6 +489,7 @@ async def handler(ws):
                             await ws.send(json.dumps({"type":"response_chunk","tool":"llm_chat","text":chunk}))
                         await ws.send(json.dumps({"type":"response_end","tool":"llm_chat"}))
                         history.append({"role": "assistant", "content": full_llm_res})
+                        extract_and_save_profile(text)
                     
                     if len(history) > 21:
                         history = [history[0]] + history[-20:]
@@ -465,6 +526,7 @@ async def handler(ws):
 
 async def main():
     init_db()
+    init_profile_table() 
     from alarm_tool import restore_alarms
     restore_alarms() 
     print(f"\n  ╔══════════════════════════════════════════╗")
