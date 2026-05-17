@@ -130,10 +130,12 @@ export function Dashboard() {
             }
           }
         } else if (msg.type === "alarm") {
-          const label = msg.label || "Alarm";
-          addLog("info", `🔔 Alarm: ${label}`);
-          // Play alarm sound via Web Audio API
-          const ctx = new AudioContext();
+             const label = msg.label || "Alarm";
+             addLog("info", `🔔 Alarm: ${label}`);
+            // Play alarm sound via Web Audio API — reuse existing context
+             const ctx = audioCtxRef.current || new AudioContext();
+             audioCtxRef.current = ctx;
+             if (ctx.state === "suspended") ctx.resume();
           const playBeep = (time: number) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
