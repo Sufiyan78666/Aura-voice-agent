@@ -101,23 +101,6 @@ Do NOT use any emojis.
 You remember the full conversation history. If a user tells you a new name, update your belief immediately.
 """
 
-def load_memory():
-    if os.path.exists(MEMORY_FILE):
-        try:
-            with open(MEMORY_FILE, "r", encoding="utf-8") as f:
-                history = json.load(f)
-                if not history or history[0].get("role") != "system":
-                    history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
-                return history
-        except: pass
-    return [{"role": "system", "content": SYSTEM_PROMPT}]
-
-def save_memory(history):
-    try:
-        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(history, f, ensure_ascii=False, indent=2)
-    except: pass
-
 
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gemma4:31b-cloud")
 CALC_MODEL   = os.environ.get("CALC_MODEL", "qwen3.5:122b")
