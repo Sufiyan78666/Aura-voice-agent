@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["tesseract", "ocrmypdf"]
+nixPkgs = ["tesseract4", "ghostscript", "unpaper"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt ocrmypdf"]
+cmds = ["pip install -r requirements.txt"]
