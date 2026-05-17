@@ -27,7 +27,52 @@ load_env_file()
 # ─── Langfuse Observability ───
 from observability import obs, observe_v4
 
-MEMORY_FILE = "memory.json"
+import psycopg2
+from psycopg2.extras import Json
+
+def get_db_conn():
+    return psycopg2.connect(os.environ["DATABASE_URL"])
+
+def init_db():
+    with get_db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS memory (
+                    id INTEGER PRIMARY KEY DEFAULT 1,
+                    history JSONB NOT NULL,
+                    CHECK (id = 1)
+                )
+            """)
+        conn.commit()
+
+def load_memory():
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT history FROM memory WHERE id = 1")
+                row = cur.fetchone()
+                if row:
+                    history = row[0]
+                    if not history or history[0].get("role") != "system":
+                        history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+                    return history
+    except Exception as e:
+        print(f"⚠️ DB load error: {e}")
+    return [{"role": "system", "content": SYSTEM_PROMPT}]
+
+def save_memory(history):
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO memory (id, history) VALUES (1, %s)
+                    ON CONFLICT (id) DO UPDATE SET history = EXCLUDED.history
+                """, (Json(history),))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ DB save error: {e}")
+
+
 SYSTEM_PROMPT = """You are a helpful AI voice assistant for Indian users.
 
 STRICT LANGUAGE RULES:
@@ -423,6 +468,7 @@ async def handler(ws):
         obs.flush()
 
 async def main():
+    init_db()
     print(f"\n  ╔══════════════════════════════════════════╗")
     print(f"  ║  Aura Voice Agent · WebSocket Server     ║")
     print(f"  ║  Model: {OLLAMA_MODEL:<32s}║")
