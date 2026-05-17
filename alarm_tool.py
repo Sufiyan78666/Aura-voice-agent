@@ -1,82 +1,102 @@
 """
-alarm_tool.py — Voice Agent Alarm Tool
-Supports: set alarm, list alarms, cancel alarm
-Compatible with: faster-whisper STT | Ollama gemma3 LLM | edge_tts TTS
+alarm_tool.py — Voice Agent Alarm Tool (WebSocket notification version)
 """
 
 import threading
 import time
 import json
 import os
-import asyncio
-import tempfile
-try:
-    import sounddevice as sd
-    AUDIO_AVAILABLE = True
-except OSError:
-    AUDIO_AVAILABLE = False
-try:
-    import soundfile as sf
-    SF_AVAILABLE = True
-except Exception:
-    SF_AVAILABLE = False
-import edge_tts
 from datetime import datetime, timedelta
+import psycopg2
+from psycopg2.extras import Json
 
-# ── Persistent alarm storage ────────────────────────────────────────────────
-ALARMS_FILE = "alarms.json"
+# ── DB connection ────────────────────────────────────────────
+def _get_db():
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
+def _init_alarms_table():
+    try:
+        with _get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS alarms (
+                        label TEXT PRIMARY KEY,
+                        fire_at TIMESTAMP NOT NULL
+                    )
+                """)
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ Alarm DB init error: {e}")
 
 def _load_alarms() -> list:
-    if os.path.exists(ALARMS_FILE):
-        with open(ALARMS_FILE, "r") as f:
-            return json.load(f)
-    return []
+    try:
+        with _get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT label, fire_at FROM alarms")
+                return [{"label": r[0], "fire_at": r[1].isoformat()} for r in cur.fetchall()]
+    except:
+        return []
 
+def _save_alarm(label: str, fire_at: datetime):
+    try:
+        with _get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO alarms (label, fire_at) VALUES (%s, %s)
+                    ON CONFLICT (label) DO UPDATE SET fire_at = EXCLUDED.fire_at
+                """, (label, fire_at))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ Alarm save error: {e}")
 
-def _save_alarms(alarms: list):
-    with open(ALARMS_FILE, "w") as f:
-        json.dump(alarms, f, indent=2)
+def _delete_alarm(label: str):
+    try:
+        with _get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM alarms WHERE label = %s", (label,))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ Alarm delete error: {e}")
 
+# ── WebSocket callback ───────────────────────────────────────
+_ws_clients: set = set()
 
-# ── In-memory alarm registry ────────────────────────────────────────────────
+def register_ws(ws):
+    _ws_clients.add(ws)
+
+def unregister_ws(ws):
+    _ws_clients.discard(ws)
+
+# ── In-memory timer registry ─────────────────────────────────
 _active_timers: dict[str, threading.Timer] = {}
 
-
-# ── TTS using edge_tts (same as voice_agent.py) ─────────────────────────────
-def _speak(text: str, voice: str = "en-IN-NeerjaNeural"):
-    try:
-        asyncio.run(_speak_async(text, voice))
-    except RuntimeError:
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            pool.submit(asyncio.run, _speak_async(text, voice))
-
-async def _speak_async(text: str, voice: str):
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-    tmp_path = tmp.name
-    tmp.close()
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(tmp_path)
-    data, samplerate = sf.read(tmp_path)
-    sd.play(data, samplerate)
-    sd.wait()
-    os.remove(tmp_path)
-
-
-# ── Core alarm logic ────────────────────────────────────────────────────────
+# ── Alarm trigger ────────────────────────────────────────────
 def _trigger_alarm(label: str):
-    message = f"Alarm! {label}!" if label and label.lower() != "alarm" else "Your alarm is ringing!"
     print(f"\n🔔 ALARM FIRED: {label}")
-    for _ in range(3):
-        _speak(message)
-        time.sleep(1.5)
-    alarms = _load_alarms()
-    alarms = [a for a in alarms if a["label"] != label]
-    _save_alarms(alarms)
+    import asyncio, json
+    message = json.dumps({"type": "alarm", "label": label})
+    
+    async def _notify():
+        dead = set()
+        for ws in list(_ws_clients):
+            try:
+                await ws.send(message)
+            except:
+                dead.add(ws)
+        _ws_clients.difference_update(dead)
+
+    # Run in a new event loop from this thread
+    try:
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(_notify())
+        loop.close()
+    except Exception as e:
+        print(f"⚠️ Alarm notify error: {e}")
+
+    _delete_alarm(label)
     _active_timers.pop(label, None)
 
-
+# ── Public API ───────────────────────────────────────────────
 def set_alarm(minutes: float = None, label: str = "Alarm",
               hour: int = None, minute: int = None) -> str:
     now = datetime.now()
@@ -100,24 +120,16 @@ def set_alarm(minutes: float = None, label: str = "Alarm",
     timer.daemon = True
     timer.start()
     _active_timers[label] = timer
-
-    alarms = _load_alarms()
-    alarms = [a for a in alarms if a["label"] != label]
-    alarms.append({"label": label, "fire_at": fire_at.isoformat()})
-    _save_alarms(alarms)
+    _save_alarm(label, fire_at)
     return f"Alarm set {time_str} for {label}."
-
 
 def cancel_alarm(label: str = "Alarm") -> str:
     if label in _active_timers:
         _active_timers[label].cancel()
         _active_timers.pop(label)
-        alarms = _load_alarms()
-        alarms = [a for a in alarms if a["label"] != label]
-        _save_alarms(alarms)
+        _delete_alarm(label)
         return f"Alarm '{label}' cancelled."
     return f"No active alarm named '{label}' found."
-
 
 def list_alarms() -> str:
     alarms = _load_alarms()
@@ -129,8 +141,8 @@ def list_alarms() -> str:
         parts.append(f"{a['label']} at {fire_at.strftime('%I:%M %p')}")
     return "Your alarms are: " + ", ".join(parts) + "."
 
-
 def restore_alarms():
+    _init_alarms_table()
     alarms = _load_alarms()
     now = datetime.now()
     restored = 0
@@ -144,5 +156,4 @@ def restore_alarms():
             _active_timers[a["label"]] = timer
             restored += 1
     if restored:
-        print(f"[alarm_tool] Restored {restored} alarm(s) from disk.")
-
+        print(f"[alarm_tool] Restored {restored} alarm(s) from DB.")

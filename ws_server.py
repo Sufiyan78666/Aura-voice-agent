@@ -203,8 +203,7 @@ def detect_tool(text):
     t = text.lower().strip()
     
     # Define search-intent keywords to prevent datetime from stealing them
-    SEARCH_INTENT = ["price","rate","gold","गोल्ड","search","google","find","latest","current","today's","score","स्कोर","प्राइस","रेट"]
-    
+    SEARCH_INTENT = ["price","rate","gold","गोल्ड","search","google","find","latest","today's","score","स्कोर","प्राइस","रेट"]
     if any(k in t for k in ["weather","mausam","temperature","temp","barish","rain","forecast","वेदर","मौसम","तापमान","बारिश","टेंपरेचर"]):
         city = extract_city(t)
         if city:
@@ -319,6 +318,8 @@ async def handler(ws):
     await ws.send(json.dumps({"type":"config","data":{"model":OLLAMA_MODEL,"calcModel":CALC_MODEL,"host":OLLAMA_HOST,"wakeWord":WAKE_WORD}}))
     
     history = load_memory()
+    from alarm_tool import register_ws, unregister_ws
+    register_ws(ws)
     pending_email = None
     awaiting_spelling = False
     try:
@@ -460,9 +461,12 @@ async def handler(ws):
     finally:
         print(f"🔌 Client disconnected")
         obs.flush()
+        unregister_ws(ws)
 
 async def main():
     init_db()
+    from alarm_tool import restore_alarms
+    restore_alarms() 
     print(f"\n  ╔══════════════════════════════════════════╗")
     print(f"  ║  Aura Voice Agent · WebSocket Server     ║")
     print(f"  ║  Model: {OLLAMA_MODEL:<32s}║")
