@@ -1,1 +1,1 @@
-﻿web: python ws_server.py
+web: bash build.sh && python ws_server.py
