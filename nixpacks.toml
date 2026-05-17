@@ -2,7 +2,7 @@
 nixPkgs = ["python312", "python312Packages.pip", "tesseract4", "ghostscript", "unpaper"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["pip install -r requirements.txt --break-system-packages"]
 
 [phases.build]
 cmds = []
