@@ -201,15 +201,20 @@ def extract_city(text):
 
 def detect_tool(text):
     t = text.lower().strip()
+    
+    # Define search-intent keywords to prevent datetime from stealing them
+    SEARCH_INTENT = ["price","rate","gold","गोल्ड","search","google","find","latest","current","today's","score","स्कोर","प्राइस","रेट"]
+    
     if any(k in t for k in ["weather","mausam","temperature","temp","barish","rain","forecast","वेदर","मौसम","तापमान","बारिश","टेंपरेचर"]):
         city = extract_city(t)
         if city:
             return "weather_tool", _run_weather(city)
         return "weather_tool", "Please tell me the city name."
     if any(k in t for k in ["time","date","day","today","samay","baje","clock","समय","तारीख","टाइम"]):
-        # Exclude common conversational greetings that use "today" or "time"
         if any(greet in t for greet in ["how are you", "how are u", "who are you", "what are you", "how's it going", "aap kaise ho"]):
-            pass # fall through to LLM chat
+            pass
+        elif any(k in t for k in SEARCH_INTENT):
+            pass  # Don't steal search queries that contain "today" or "current"
         else:
             return "datetime_tool", _run_datetime(text)
     if any(k in t for k in ["alarm","timer","remind","अलार्म"]):
@@ -233,16 +238,14 @@ def detect_tool(text):
         if any(k in t for k in ["count","how many"]): return "email_tool", _run_email_count()
         return "email_tool", _run_email_unread()
     if any(k in t for k in ["my document","my pdf","my book","my notes","my doc","document mein","from my doc","माय डॉक","डॉक्यूमेंट","मेरी फाइल","search my doc", "search in my"]):
-        # Remove "search " if present so RAG gets the real query
         clean_q = re.sub(r"\b(search|find)\b"," ",t,flags=re.IGNORECASE).strip()
         return "rag_tool", _run_rag(clean_q)
     if any(k in t for k in ["calculate","plus","minus","times","divided","multiply","multiplied"]) or re.search(r'\d+\s*[\+\-\*\/x]\s*\d+', t):
         return "calculator_tool", _run_calculator(t)
-    if any(k in t for k in ["search","google","find","lookup","सर्च","गूगल","price","rate","प्राइस","रेट","gold","गोल्ड","score","स्कोर"]):
+    if any(k in t for k in ["search","google","find","lookup","सर्च","गूगल","price","rate","प्राइस","रेट","gold","गोल्ड","score","स्कोर","latest","current"]):
         q = re.sub(r"\b(search|google|find|lookup|for|about)\b"," ",t,flags=re.IGNORECASE).strip()
         if q: return "websearch_tool", _run_websearch(q)
     if any(k in t for k in ["open file", "open pdf", "open document", "ओपन फाइल", "ओपन", "open"]):
-        # basic extraction of filename
         filename = re.sub(r"\b(open|please|can you|the)\b", " ", t, flags=re.IGNORECASE).strip()
         if filename:
             return "file_opener_tool", _run_file_opener(filename)
