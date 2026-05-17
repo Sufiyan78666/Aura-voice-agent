@@ -493,8 +493,8 @@ export function Dashboard() {
           </div>
           <div className="border-t border-border-main p-4 space-y-2 text-xs shrink-0">
             <CfgRow label="Wake Word" value={config.wakeWord} />
-            <CfgRow label="STT" value="faster-whisper · small" />
-            <CfgRow label="TTS" value="edge-tts · hi-IN" />
+            <CfgRow label="STT" value="Web Speech API (hi-IN)" />
+            <CfgRow label="TTS" value="Browser Speech Synthesis" />
             <CfgRow label="LLM" value={`ollama · ${config.model}`} />
           </div>
         </aside>
