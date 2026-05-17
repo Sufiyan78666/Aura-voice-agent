@@ -10,8 +10,16 @@ import json
 import os
 import asyncio
 import tempfile
-import sounddevice as sd
-import soundfile as sf
+try:
+    import sounddevice as sd
+    AUDIO_AVAILABLE = True
+except OSError:
+    AUDIO_AVAILABLE = False
+try:
+    import soundfile as sf
+    SF_AVAILABLE = True
+except Exception:
+    SF_AVAILABLE = False
 import edge_tts
 from datetime import datetime, timedelta
 
