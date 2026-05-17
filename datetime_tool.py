@@ -1,16 +1,17 @@
 """
-datetime_tool.py  Voice Agent Date/Time Tool
+datetime_tool.py  Voice Agent Date/Time Tool
 Returns current time, date, or day based on user query.
 """
 
 from __future__ import annotations
-
 from datetime import datetime
 from typing import Optional
+import pytz
 
+IST = pytz.timezone("Asia/Kolkata")
 
 def get_date_time(request_text: Optional[str] = None) -> str:
-    now = datetime.now()
+    now = datetime.now(IST)
 
     wants_time = False
     wants_date = False
@@ -34,7 +35,6 @@ def get_date_time(request_text: Optional[str] = None) -> str:
 
     time_part = now.strftime("%I:%M %p")
     return f"Current time is {time_part}."
-
 
 if __name__ == "__main__":
     print(get_date_time("what time is it"))
