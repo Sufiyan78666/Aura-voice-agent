@@ -145,3 +145,4 @@ def restore_alarms():
             restored += 1
     if restored:
         print(f"[alarm_tool] Restored {restored} alarm(s) from disk.")
+
