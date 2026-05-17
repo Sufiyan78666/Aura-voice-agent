@@ -2,6 +2,8 @@
 
 A premium, real-time voice-controlled AI assistant designed for a seamless, "Siri-like" experience on the web. Built with React, Python, PostgreSQL, and Ollama Cloud.
 
+👉 **Live Demo:** [aura-voice-agent.sufiyankhan7339.workers.dev](https://aura-voice-agent.sufiyankhan7339.workers.dev/)
+
 ---
 ![Aura Dashboard](./dashboard_preview.png)
 ## 🖥️ Dashboard & Interface
