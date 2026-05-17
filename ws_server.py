@@ -31,9 +31,16 @@ import psycopg2
 from psycopg2.extras import Json
 
 def get_db_conn():
-    return psycopg2.connect(os.environ["DATABASE_URL"])
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        raise RuntimeError("DATABASE_URL is not set")
+    return psycopg2.connect(db_url)
 
 def init_db():
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        print("⚠️  DATABASE_URL not set — memory will not persist this session.")
+        return
     with get_db_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -44,6 +51,7 @@ def init_db():
                 )
             """)
         conn.commit()
+    print("✅ PostgreSQL memory initialized.")
 
 def load_memory():
     try:
