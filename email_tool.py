@@ -202,16 +202,9 @@ def search_emails(query: str, max_count: int = 5) -> str:
 
 
 def send_email(to: str, subject: str, body: str) -> str:
-    """
-    Send an email via Gmail SMTP.
-    to:      recipient email address
-    subject: email subject line
-    body:    plain-text email body
-    """
     if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
-        return "Email credentials are not configured. Please set EMAIL_ADDRESS and EMAIL_PASSWORD in your .env file."
+        return "Email credentials are not configured."
 
-    # Basic validation
     if not re.match(r"[^@]+@[^@]+\.[^@]+", to):
         return f"Invalid email address: {to}"
 
@@ -222,16 +215,15 @@ def send_email(to: str, subject: str, body: str) -> str:
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.ehlo()
-            server.starttls()
+        # Use port 465 with SSL instead of 587 with STARTTLS
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.sendmail(EMAIL_ADDRESS, to, msg.as_string())
 
         return f"Email sent successfully to {to} with subject '{subject}'."
 
     except smtplib.SMTPAuthenticationError:
-        return "Authentication failed. Check your EMAIL_PASSWORD (use a Gmail App Password, not your real password)."
+        return "Authentication failed. Check your Gmail App Password."
     except smtplib.SMTPRecipientsRefused:
         return f"Recipient address '{to}' was refused by the server."
     except Exception as e:
