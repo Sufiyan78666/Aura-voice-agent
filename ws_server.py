@@ -581,9 +581,6 @@ async def main():
     restore_docs_from_db()  
     from alarm_tool import restore_alarms
     restore_alarms() 
-    # Build RAG index lazily on startup (only if needed)
-    from rag_tool import build_index
-    build_index(docs_dir=RAG_DOCS_DIR, index_dir=RAG_INDEX_DIR, force_rebuild=False)
     print(f"\n  ╔══════════════════════════════════════════╗")
     print(f"  ║  Aura Voice Agent · WebSocket Server     ║")
     print(f"  ║  Model: {OLLAMA_MODEL:<32s}║")
