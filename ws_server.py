@@ -172,6 +172,10 @@ def load_profile() -> dict:
     except:
         return {}
 
+# Common words that should never be saved as names
+INVALID_NAMES = {"also", "the", "and", "but", "yes", "haan", "ok", "okay", 
+                 "sure", "boss", "sorry", "hello", "hi", "bye", "just", "well"}
+
 def extract_and_save_profile(text: str):
     patterns = [
         r"my name is ([a-zA-Z]+)",
@@ -185,6 +189,9 @@ def extract_and_save_profile(text: str):
         m = re.search(pattern, text.lower())
         if m:
             name = m.group(1).capitalize()
+            if name.lower() in INVALID_NAMES:
+                print(f"⚠️ Skipped saving invalid name: {name}")
+                continue
             save_profile("name", name)
             print(f"👤 Saved user name: {name}")
             break
