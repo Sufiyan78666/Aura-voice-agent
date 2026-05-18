@@ -270,66 +270,26 @@ export function Dashboard() {
     if (!SR) { addLog("error", "Speech recognition not supported in this browser"); return; }
     const recognition = new SR();
     recognition.lang = "en-IN";
-    recognition.interimResults = true; // ← key change for mobile
+    recognition.interimResults = false; // ← back to false, simpler
     recognition.continuous = false;
     recognition.maxAlternatives = 1;
 
-    let finalTranscript = "";
-    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
-    let hasSpoken = false;
+    let sent = false; // prevent double-sending
+    let autoStopTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const stopRecognition = () => {
-      if (silenceTimer) clearTimeout(silenceTimer);
+    // Auto-stop after 10 seconds no matter what
+    autoStopTimer = setTimeout(() => {
       try { recognition.stop(); } catch {}
-    };
+      if (!sent) { setStatus("idle"); }
+    }, 10000);
 
-    const resetSilenceTimer = () => {
-      if (silenceTimer) clearTimeout(silenceTimer);
-      // Stop after 2 seconds of silence after speech detected
-      silenceTimer = setTimeout(() => {
-        stopRecognition();
-      }, hasSpoken ? 2000 : 8000);
-    };
+    const sendText = (text: string) => {
+      if (sent) return;
+      sent = true;
+      if (autoStopTimer) clearTimeout(autoStopTimer);
 
-    recognition.onstart = () => {
-      resetSilenceTimer();
-    };
-
-    recognition.onspeechstart = () => {
-      hasSpoken = true;
-      resetSilenceTimer();
-    };
-
-    recognition.onresult = (e: any) => {
-      hasSpoken = true;
-      resetSilenceTimer();
-
-      // Collect interim + final results
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          finalTranscript += e.results[i][0].transcript;
-        } else {
-          interim += e.results[i][0].transcript;
-        }
-      }
-
-      // If we have a final result, process immediately
-      if (finalTranscript) {
-        stopRecognition();
-      }
-    };
-
-    recognition.onend = () => {
-      if (silenceTimer) clearTimeout(silenceTimer);
-      const text = finalTranscript.trim();
-      if (!text) {
-        setStatus("idle");
-        return;
-      }
-
-      addLog("user", `"${text}"`);
       const t = text.toLowerCase().trim();
+      addLog("user", `"${text}"`);
 
       if (t === "stop" || t === "stop it" || t === "shut up" || t === "ruk jao" || t === "quiet" || t === "silence") {
         stopAudio();
@@ -345,12 +305,31 @@ export function Dashboard() {
       }
     };
 
+    recognition.onresult = (e: any) => {
+      // Grab the best result immediately
+      let text = "";
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal || e.results[i][0].transcript) {
+          text += e.results[i][0].transcript;
+        }
+      }
+      if (text.trim()) {
+        sendText(text.trim());
+        try { recognition.stop(); } catch {}
+      }
+    };
+
+    recognition.onend = () => {
+      if (autoStopTimer) clearTimeout(autoStopTimer);
+      if (!sent) setStatus("idle");
+    };
+
     recognition.onerror = (e: any) => {
-      if (silenceTimer) clearTimeout(silenceTimer);
+      if (autoStopTimer) clearTimeout(autoStopTimer);
       if (e.error !== "aborted" && e.error !== "no-speech") {
         addLog("error", `Speech error: ${e.error}`);
       }
-      setStatus("idle");
+      if (!sent) setStatus("idle");
     };
 
     recognition.start();
