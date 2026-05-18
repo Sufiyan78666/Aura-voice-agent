@@ -269,71 +269,92 @@ export function Dashboard() {
     if (!SR) { addLog("error", "Speech recognition not supported in this browser"); return; }
     const recognition = new SR();
     recognition.lang = "en-IN";
-    recognition.interimResults = false;
+    recognition.interimResults = true; // ← key change for mobile
     recognition.continuous = false;
     recognition.maxAlternatives = 1;
 
-    // Mobile fallback: auto-stop after 8 seconds of silence
-    let autoStopTimer: ReturnType<typeof setTimeout> | null = null;
-    const clearAutoStop = () => { if (autoStopTimer) clearTimeout(autoStopTimer); };
-    const startAutoStop = () => {
-      clearAutoStop();
-      autoStopTimer = setTimeout(() => {
-        recognition.stop();
-      }, 8000);
+    let finalTranscript = "";
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+    let hasSpoken = false;
+
+    const stopRecognition = () => {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      try { recognition.stop(); } catch {}
+    };
+
+    const resetSilenceTimer = () => {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      // Stop after 2 seconds of silence after speech detected
+      silenceTimer = setTimeout(() => {
+        stopRecognition();
+      }, hasSpoken ? 2000 : 8000);
     };
 
     recognition.onstart = () => {
-      startAutoStop();
+      resetSilenceTimer();
     };
 
     recognition.onspeechstart = () => {
-      clearAutoStop(); // User started speaking, don't auto-stop
-    };
-
-    recognition.onspeechend = () => {
-      clearAutoStop();
-      recognition.stop(); // Force stop when speech ends on mobile
+      hasSpoken = true;
+      resetSilenceTimer();
     };
 
     recognition.onresult = (e: any) => {
-      clearAutoStop();
-      const text = e.results[0][0].transcript;
-      const confidence = e.results[0][0].confidence;
-      const confStr = confidence > 0 ? `Confidence: ${(confidence*100).toFixed(0)}%` : "";
-      addLog("user", `"${text}"`, confStr);
-      
+      hasSpoken = true;
+      resetSilenceTimer();
+
+      // Collect interim + final results
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscript += e.results[i][0].transcript;
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+
+      // If we have a final result, process immediately
+      if (finalTranscript) {
+        stopRecognition();
+      }
+    };
+
+    recognition.onend = () => {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      const text = finalTranscript.trim();
+      if (!text) {
+        setStatus("idle");
+        return;
+      }
+
+      addLog("user", `"${text}"`);
       const t = text.toLowerCase().trim();
+
       if (t === "stop" || t === "stop it" || t === "shut up" || t === "ruk jao" || t === "quiet" || t === "silence") {
         stopAudio();
         return;
       }
 
       setStatus("processing");
-      const detectedLang = "hinglish";
-
       if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "speech", text, lang: detectedLang }));
+        wsRef.current.send(JSON.stringify({ type: "speech", text, lang: "hinglish" }));
       } else {
-        addLog("error", "Backend not connected", "Start ws_server.py first");
+        addLog("error", "Backend not connected");
         setStatus("idle");
       }
     };
 
     recognition.onerror = (e: any) => {
-      clearAutoStop();
-      if (e.error !== "aborted") addLog("error", `Speech error: ${e.error}`);
+      if (silenceTimer) clearTimeout(silenceTimer);
+      if (e.error !== "aborted" && e.error !== "no-speech") {
+        addLog("error", `Speech error: ${e.error}`);
+      }
       setStatus("idle");
-    };
-
-    recognition.onend = () => {
-      clearAutoStop();
-      if (status === "listening") setStatus("idle");
     };
 
     recognition.start();
     recognitionRef.current = recognition;
-  }, [addLog, status, stopAudio]);
+  }, [addLog, stopAudio]);
 
   // ─── Start/Stop Agent ──────────────────────────
   const handleStart = useCallback(() => {
