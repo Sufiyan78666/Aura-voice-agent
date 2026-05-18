@@ -62,6 +62,7 @@ export function Dashboard() {
   const isSpeakingRef = useRef<boolean>(false);
   const currentAgentLogIdRef = useRef<string | null>(null);
   const currentUttRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const lastMicTapRef = useRef<number>(0);
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [logs]);
 
@@ -378,6 +379,9 @@ export function Dashboard() {
   // ─── Mic Toggle ────────────────────────────────
   const handleMicToggle = useCallback(() => {
     if (!isRunning) return;
+    const now = Date.now();
+    if (now - lastMicTapRef.current < 1000) return; // debounce 1 second
+    lastMicTapRef.current = now;
     if (status === "speaking") {
       window.speechSynthesis.cancel();
       setStatus("idle");
