@@ -46,6 +46,7 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tiff"}
 EXCEL_EXTS = {".xlsx", ".xls", ".csv"}
 
 _index_cache = None
+_embed_model_cache = None
 _HASH_FILE   = ".rag_docs_hash"
 
 
@@ -453,19 +454,24 @@ def _collect_documents(docs_dir: str):
 # MODELS
 # ─────────────────────────────────────────────────────────────
 def _get_embed_model():
+    global _embed_model_cache
+    if _embed_model_cache is not None:
+        return _embed_model_cache
     if EMBED_BACKEND.lower() == "huggingface":
         try:
             from llama_index.embeddings.huggingface import HuggingFaceEmbedding
             print(f"🔢 Embedding: HuggingFace ({EMBED_MODEL})")
-            return HuggingFaceEmbedding(
+            _embed_model_cache = HuggingFaceEmbedding(
                 model_name=EMBED_MODEL,
                 cache_folder="/tmp/hf_cache"
             )
+            return _embed_model_cache
         except ImportError as e:
             print(f"⚠️  HuggingFace import failed: {e}")
     from llama_index.embeddings.ollama import OllamaEmbedding
     print(f"🔢 Embedding: Ollama ({EMBED_MODEL})")
-    return OllamaEmbedding(model_name=EMBED_MODEL, base_url=OLLAMA_LOCAL_URL)
+    _embed_model_cache = OllamaEmbedding(model_name=EMBED_MODEL, base_url=OLLAMA_LOCAL_URL)
+    return _embed_model_cache
 
 def _get_llm(ollama_host: str, ollama_model: str, api_key: Optional[str] = None):
     from llama_index.llms.ollama import Ollama

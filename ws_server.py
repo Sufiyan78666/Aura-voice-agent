@@ -344,6 +344,11 @@ def detect_tool(text):
         if any(k in t for k in ["send", "write", "भेजो", "draft"]): return "email_tool", _run_send_email(t)
         if any(k in t for k in ["count","how many"]): return "email_tool", _run_email_count()
         return "email_tool", _run_email_unread()
+    if any(k in t for k in ["show all", "list all", "list my doc", "show my doc", "what documents", "which documents", "all documents", "all my doc"]):
+        files = [f for f in os.listdir(RAG_DOCS_DIR) if not f.startswith('.')] if os.path.exists(RAG_DOCS_DIR) else []
+        if files:
+            return "rag_tool", "Your uploaded documents are: " + ", ".join(files)
+        return "rag_tool", "No documents uploaded yet."
     if any(k in t for k in ["my document","my pdf","my book","my notes","my doc","document mein","from my doc","माय डॉक","डॉक्यूमेंट","मेरी फाइल","search my doc", "search in my"]):
         clean_q = re.sub(r"\b(search|find)\b"," ",t,flags=re.IGNORECASE).strip()
         return "rag_tool", _run_rag(clean_q)
@@ -555,7 +560,7 @@ async def handler(ws):
                     save_doc_to_db(name, raw_bytes)  # ← ADD: persist to PostgreSQL
                     print(f"📥 Saved uploaded document: {name}")
                     from rag_tool import build_index
-                    await asyncio.to_thread(build_index, RAG_DOCS_DIR, RAG_INDEX_DIR)
+                    await asyncio.to_thread(build_index, RAG_DOCS_DIR, RAG_INDEX_DIR, True)  # force_rebuild=True
                     await ws.send(json.dumps({"type":"response","tool":"rag_tool","text":f"Document {name} uploaded and indexed successfully!"}))
                 elif msg.get("type") == "ingest_docs":
                     print("📚 Ingesting documents...")
@@ -579,6 +584,12 @@ async def main():
     init_profile_table() 
     init_docs_table()        # ← ADD
     restore_docs_from_db()  
+    # Pre-build RAG index on startup if docs exist
+    from rag_tool import build_index
+    import os
+    if os.path.exists(RAG_DOCS_DIR) and os.listdir(RAG_DOCS_DIR):
+        print("📚 Pre-building RAG index from restored docs...")
+        await asyncio.to_thread(build_index, RAG_DOCS_DIR, RAG_INDEX_DIR, True)
     from alarm_tool import restore_alarms
     restore_alarms() 
     print(f"\n  ╔══════════════════════════════════════════╗")
