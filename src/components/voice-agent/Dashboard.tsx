@@ -394,9 +394,9 @@ export function Dashboard() {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         {/* Main Panel */}
-        <main className="flex-1 flex flex-col overflow-hidden p-6 gap-5">
+        <main className="flex-1 flex flex-col overflow-hidden p-4 md:p-6 gap-4 md:gap-5">
           {/* Controls */}
           <div className="flex items-center justify-between gap-4 shrink-0">
             <div className="flex items-center gap-3">
@@ -428,7 +428,7 @@ export function Dashboard() {
           {/* Visualizer + Mic */}
           <div className="glass-card rounded-2xl p-8 flex flex-col items-center gap-6 shrink-0">
             {/* Audio Bars */}
-            <div className="w-full h-28 relative rounded-xl overflow-hidden bg-black/20">
+            <div className="w-full h-20 md:h-28 relative rounded-xl overflow-hidden bg-black/20">
               <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
               <div className="absolute inset-0 grid place-items-center">
                 <div className="flex items-end gap-[3px] h-20">
@@ -447,7 +447,7 @@ export function Dashboard() {
             {/* Mic Button & Stop Audio */}
             <div className="flex items-center gap-4">
               <button onClick={handleMicToggle} disabled={!isRunning}
-                className={cn("size-20 rounded-full grid place-items-center transition-all duration-300 cursor-pointer",
+                className={cn("size-16 md:size-20 rounded-full grid place-items-center transition-all duration-300 cursor-pointer",
                   !isRunning && "opacity-40 cursor-not-allowed",
                   status === "listening" ? "bg-success text-white orb-listening glow-success scale-110" : "bg-primary text-primary-foreground orb-pulse glow-primary hover:scale-105 active:scale-95")}>
                 {status === "listening" ? <MicOff className="size-8" strokeWidth={1.8} /> : <Mic className="size-8" strokeWidth={1.8} />}
@@ -470,14 +470,14 @@ export function Dashboard() {
             <h3 className="text-xs font-semibold uppercase tracking-widest text-text-dim mb-3 flex items-center gap-2">
               <Zap className="size-3.5" /> Registered Tools <span className="ml-auto font-mono">{tools.length} loaded</span>
             </h3>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
               {tools.map(t => <ToolCard key={t.name} tool={t} />)}
             </div>
           </div>
         </main>
 
         {/* Right: Observation Log */}
-        <aside className="w-96 bg-panel border-l border-border-main flex flex-col shrink-0">
+        <aside className="w-full md:w-96 bg-panel border-t md:border-t-0 md:border-l border-border-main flex flex-col shrink-0 max-h-64 md:max-h-none">
           <div className="h-12 flex items-center justify-between px-5 border-b border-border-main shrink-0">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-text-dim flex items-center gap-2"><Activity className="size-3.5" /> Observation Log</h3>
             {isRunning && <span className="flex items-center gap-1.5 text-[10px] font-mono text-success"><span className="size-1.5 rounded-full bg-success status-blink" /> live</span>}
