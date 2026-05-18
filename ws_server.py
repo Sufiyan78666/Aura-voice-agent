@@ -597,14 +597,14 @@ async def main():
     print(f"  ║  Model: {OLLAMA_MODEL:<32s}║")
     print(f"  ║  Port:  ws://localhost:{WS_PORT:<18d}║")
     print(f"  ╚══════════════════════════════════════════╝\n")
-    async with websockets.serve(
+   async with websockets.serve(
         handler,
         "0.0.0.0",
         WS_PORT,
         max_size=50_000_000,
-        ping_interval=20,    # send ping every 20 seconds
-        ping_timeout=60,     # wait 60 seconds for pong
-    ):
+        ping_interval=int(os.environ.get("WEBSOCKET_PING_INTERVAL", "20")),
+        ping_timeout=int(os.environ.get("WEBSOCKET_PING_TIMEOUT", "60")),
+):
         await asyncio.Future()
 
 if __name__ == "__main__":
