@@ -484,12 +484,22 @@ def _get_llm(ollama_host: str, ollama_model: str, api_key: Optional[str] = None)
     )
 
 
+_chroma_client = None
+
 def _get_chroma_vector_store():
+    global _chroma_client
     import chromadb
     from llama_index.vector_stores.chroma import ChromaVectorStore
 
-    client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
-    collection = client.get_or_create_collection(CHROMA_COLLECTION)
+    if _chroma_client is None:
+        try:
+            _chroma_client = chromadb.EphemeralClient()
+            print("✅ Using Chroma EphemeralClient (in-memory)")
+        except Exception as e:
+            print(f"⚠️ Chroma client error: {e}")
+            raise
+    
+    collection = _chroma_client.get_or_create_collection(CHROMA_COLLECTION)
     return ChromaVectorStore(chroma_collection=collection)
 
 
