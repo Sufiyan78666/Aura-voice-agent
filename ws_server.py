@@ -556,12 +556,20 @@ async def handler(ws):
                     os.makedirs(RAG_DOCS_DIR, exist_ok=True)
                     filepath = os.path.join(RAG_DOCS_DIR, name)
                     with open(filepath, "wb") as f:
-                       f.write(raw_bytes)
-                    save_doc_to_db(name, raw_bytes)  # ← ADD: persist to PostgreSQL
+                        f.write(raw_bytes)
+                    save_doc_to_db(name, raw_bytes)
                     print(f"📥 Saved uploaded document: {name}")
-                    from rag_tool import build_index
-                    await asyncio.to_thread(build_index, RAG_DOCS_DIR, RAG_INDEX_DIR, True)  # force_rebuild=True
-                    await ws.send(json.dumps({"type":"response","tool":"rag_tool","text":f"Document {name} uploaded and indexed successfully!"}))
+                    # Immediately confirm upload to client — don't wait for indexing
+                    await ws.send(json.dumps({"type":"response","tool":"rag_tool","text":f"Document {name} uploaded! Indexing in background, will be ready in a moment..."}))
+                    # Build index in background so connection doesn't timeout
+                    async def background_index():
+                        try:
+                            from rag_tool import build_index
+                            await asyncio.to_thread(build_index, RAG_DOCS_DIR, RAG_INDEX_DIR, True)
+                            await ws.send(json.dumps({"type":"response","tool":"rag_tool","text":f"Document {name} indexed and ready! You can now ask questions about it."}))
+                        except Exception as e:
+                            await ws.send(json.dumps({"type":"response","tool":"rag_tool","text":f"Indexing failed: {e}"}))
+                    asyncio.create_task(background_index())
                 elif msg.get("type") == "ingest_docs":
                     print("📚 Ingesting documents...")
                     from rag_tool import build_index
