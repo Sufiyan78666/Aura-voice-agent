@@ -271,7 +271,33 @@ export function Dashboard() {
     recognition.lang = "en-IN";
     recognition.interimResults = false;
     recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+
+    // Mobile fallback: auto-stop after 8 seconds of silence
+    let autoStopTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearAutoStop = () => { if (autoStopTimer) clearTimeout(autoStopTimer); };
+    const startAutoStop = () => {
+      clearAutoStop();
+      autoStopTimer = setTimeout(() => {
+        recognition.stop();
+      }, 8000);
+    };
+
+    recognition.onstart = () => {
+      startAutoStop();
+    };
+
+    recognition.onspeechstart = () => {
+      clearAutoStop(); // User started speaking, don't auto-stop
+    };
+
+    recognition.onspeechend = () => {
+      clearAutoStop();
+      recognition.stop(); // Force stop when speech ends on mobile
+    };
+
     recognition.onresult = (e: any) => {
+      clearAutoStop();
       const text = e.results[0][0].transcript;
       const confidence = e.results[0][0].confidence;
       const confStr = confidence > 0 ? `Confidence: ${(confidence*100).toFixed(0)}%` : "";
@@ -284,12 +310,8 @@ export function Dashboard() {
       }
 
       setStatus("processing");
-      
-      // We default to 'hinglish' as it handles both English and Hindi/Hinglish naturally.
-      // This prevents the AI from strictly adhering to the [LANG: en] rule when the user speaks Hindi in Roman script.
       const detectedLang = "hinglish";
 
-      // Send to backend
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ type: "speech", text, lang: detectedLang }));
       } else {
@@ -297,14 +319,21 @@ export function Dashboard() {
         setStatus("idle");
       }
     };
+
     recognition.onerror = (e: any) => {
+      clearAutoStop();
       if (e.error !== "aborted") addLog("error", `Speech error: ${e.error}`);
       setStatus("idle");
     };
-    recognition.onend = () => { if (status === "listening") setStatus("idle"); };
+
+    recognition.onend = () => {
+      clearAutoStop();
+      if (status === "listening") setStatus("idle");
+    };
+
     recognition.start();
     recognitionRef.current = recognition;
-  }, [addLog, status]);
+  }, [addLog, status, stopAudio]);
 
   // ─── Start/Stop Agent ──────────────────────────
   const handleStart = useCallback(() => {
