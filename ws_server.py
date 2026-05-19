@@ -442,6 +442,17 @@ async def handler(ws):
     register_ws(ws)
     pending_email = None
     awaiting_spelling = False
+
+    # Keepalive task — prevents Cloudflare from dropping idle WebSocket
+    async def keepalive():
+        while True:
+            await asyncio.sleep(30)
+            try:
+                await ws.send(json.dumps({"type": "ping"}))
+            except:
+                break
+
+    asyncio.create_task(keepalive())
     try:
         async for message in ws:
             try:
