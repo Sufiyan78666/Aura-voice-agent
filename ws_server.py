@@ -324,7 +324,7 @@ def detect_tool(text):
         if city:
             return "weather_tool", _run_weather(city)
         return "weather_tool", "Please tell me the city name."
-    if any(k in t for k in ["time","date","day","today","samay","baje","clock","समय","तारीख","टाइम"]):
+    if any(k in t for k in ["time","date","day","today","samay","baje","clock","din","kal","parso","समय","तारीख","टाइम","दिन"]):
         if any(greet in t for greet in ["how are you", "how are u", "who are you", "what are you", "how's it going", "aap kaise ho"]):
             pass
         elif any(k in t for k in SEARCH_INTENT):
@@ -345,7 +345,7 @@ def detect_tool(text):
         if m1: return "alarm_tool", _run_set_alarm(minutes=int(m1.group(1)))
         if m2: return "alarm_tool", _run_set_alarm(minutes=int(m2.group(1)) * 60)
         return "alarm_tool", "I can set alarms by minutes or hours, or by specific time like 'at 1:50 p.m.'."
-    if any(k in t for k in ["news","headlines","khabar","samachar","न्यूज़","न्यूज","हैडलाइंस","खबर","समाचार"]):
+    if any(k in t for k in ["news","headlines","khabar","samachar","न्यूज़","न्यूज","हैडलाइंस","खबर","समाचार"]) and not any(k in t for k in ["search","google","find","latest in","latest about"]):
         return "news_tool", _run_news(t)
     if any(k in t for k in ["email","mail","inbox","ईमेल"]):
         if any(k in t for k in ["send", "write", "भेजो", "draft"]): return "email_tool", _run_send_email(t)
@@ -359,7 +359,7 @@ def detect_tool(text):
     if any(k in t for k in ["my document","my pdf","my book","my notes","my doc","document mein","from my doc","माय डॉक","डॉक्यूमेंट","मेरी फाइल","search my doc", "search in my"]):
         clean_q = re.sub(r"\b(search|find)\b"," ",t,flags=re.IGNORECASE).strip()
         return "rag_tool", _run_rag(clean_q)
-    if any(k in t for k in ["calculate","plus","minus","times","divided","multiply","multiplied"]) or re.search(r'\d+\s*[\+\-\*\/x]\s*\d+', t):
+    if any(k in t for k in ["calculate","plus","minus","times","divided","multiply","multiplied","square root","cube root","sqrt","percentage","percent of","power of"]) or re.search(r'\d+\s*[\+\-\*\/x]\s*\d+', t):
         return "calculator_tool", _run_calculator(t)
     if any(k in t for k in ["search","google","find","lookup","सर्च","गूगल","price","rate","प्राइस","रेट","gold","गोल्ड","score","स्कोर","latest","current"]):
         q = re.sub(r"\b(search|google|find|lookup|for|about)\b"," ",t,flags=re.IGNORECASE).strip()
