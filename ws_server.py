@@ -30,11 +30,20 @@ from observability import obs, observe_v4
 import psycopg2
 from psycopg2.extras import Json
 
-def get_db_conn():
+def get_db_conn(retries=3, delay=2):
+    import time
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
         raise RuntimeError("DATABASE_URL is not set")
-    return psycopg2.connect(db_url)
+    for attempt in range(retries):
+        try:
+            return psycopg2.connect(db_url, connect_timeout=10)
+        except Exception as e:
+            print(f"⚠️ DB connect attempt {attempt+1} failed: {e}")
+            if attempt < retries - 1:
+                time.sleep(delay)
+            else:
+                raise
 
 def init_db():
     db_url = os.environ.get("DATABASE_URL")
@@ -437,7 +446,7 @@ async def handler(ws):
     print(f"🔌 Client connected")
     await ws.send(json.dumps({"type":"config","data":{"model":OLLAMA_MODEL,"calcModel":CALC_MODEL,"host":OLLAMA_HOST,"wakeWord":WAKE_WORD}}))
     
-    history = load_memory()
+    history = await asyncio.to_thread(load_memory)
     from alarm_tool import register_ws, unregister_ws
     register_ws(ws)
     pending_email = None
@@ -564,7 +573,7 @@ async def handler(ws):
                     
                     if len(history) > 21:
                         history = [history[0]] + history[-20:]
-                    save_memory(history)
+                    await asyncio.to_thread(save_memory, history)
                     await ws.send(json.dumps({"type":"status","status":"idle"}))
                 elif msg.get("type") == "upload_doc":
                     name = msg.get("name")
