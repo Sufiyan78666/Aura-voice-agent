@@ -365,7 +365,7 @@ def detect_tool(text):
         if files:
             return "rag_tool", "Your uploaded documents are: " + ", ".join(files)
         return "rag_tool", "No documents uploaded yet."
-    if any(k in t for k in ["my document","my pdf","my book","my notes","my doc","document mein","from my doc","माय डॉक","डॉक्यूमेंट","मेरी फाइल","search my doc", "search in my"]):
+    if any(k in t for k in ["my document","my pdf","my book","my notes","my doc","document mein","from my doc","माय डॉक","डॉक्यूमेंट","मेरी फाइल","search my doc","search in my","summarise my","summarize my","summary of my","from my notes"]):
         clean_q = re.sub(r"\b(search|find)\b"," ",t,flags=re.IGNORECASE).strip()
         return "rag_tool", _run_rag(clean_q)
     if any(k in t for k in ["calculate","plus","minus","times","divided","multiply","multiplied","square root","cube root","sqrt","percentage","percent of","power of"]) or re.search(r'\d+\s*[\+\-\*\/x]\s*\d+', t):

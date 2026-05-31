@@ -103,15 +103,21 @@ def _format_country_label(country: Optional[str]) -> str:
 
 def _fetch_rss_items(url: str) -> list[str]:
     try:
-        req = Request(url, headers={"User-Agent": "voice-agent/1.0"})
-        with urlopen(req, timeout=10) as response:
+        req = Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/rss+xml, application/xml, text/xml, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+        })
+        with urlopen(req, timeout=15) as response:
             data = response.read()
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ News fetch error: {e}")
         return []
 
     try:
         root = ET.fromstring(data)
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ News parse error: {e}")
         return []
 
     items: list[str] = []
