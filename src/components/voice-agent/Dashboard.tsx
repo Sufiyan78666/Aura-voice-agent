@@ -84,7 +84,7 @@ export function Dashboard() {
 
   // ─── WebSocket ──────────────────────────────────
   const connectWs = useCallback(() => {
-    const ws = new WebSocket("wss://aura-voice-agent-production.up.railway.app");
+    const ws = new WebSocket("wss://aura-voice-agent-162299028053.us-central1.run.app");
     ws.onopen = () => { setWsConnected(true); addLog("info", "Connected to Python backend", "wss://aura-voice-agent-production.up.railway.app"); };
     ws.onclose = () => { setWsConnected(false); addLog("info", "Backend disconnected"); };
     ws.onerror = () => { addLog("error", "Cannot connect to backend", "Run: python ws_server.py"); };
