@@ -26,3 +26,7 @@ gmail_auth.py
 credentials.json
 token.json
 gmail_auth.py
+
+railway.toml
+nixpacks.toml
+build.sh
