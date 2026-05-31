@@ -86,7 +86,26 @@ export function Dashboard() {
   const connectWs = useCallback(() => {
     const ws = new WebSocket("wss://aura-voice-agent-162299028053.us-central1.run.app");
     ws.onopen = () => { setWsConnected(true); addLog("info", "Connected to Python backend", "wss://aura-voice-agent-162299028053.us-central1.run.app"); };
-    ws.onclose = () => { setWsConnected(false); addLog("info", "Backend disconnected"); };
+
+    // Keep WebSocket alive on Cloud Run (prevents idle timeout)
+    const pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping" }));
+      } else {
+        clearInterval(pingInterval);
+      }
+    }, 30000); // ping every 30 seconds
+
+    ws.onclose = () => {
+      clearInterval(pingInterval);
+      setWsConnected(false);
+      addLog("info", "Backend disconnected");
+      // Auto-reconnect after 3 seconds
+      if (isRunning) {
+        setTimeout(() => connectWs(), 3000);
+      }
+    };
+
     ws.onerror = () => { addLog("error", "Cannot connect to backend", "Run: python ws_server.py"); };
     ws.onmessage = (ev) => {
       try {
