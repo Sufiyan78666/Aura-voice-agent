@@ -1,0 +1,15 @@
+venv/
+node_modules/
+__pycache__/
+*.pyc
+.env
+rag_docs/
+rag_index/
+hf_cache/
+credentials.json
+token.json
+gmail_auth.py
+*.log
+.DS_Store
+dist/
+scratch/
