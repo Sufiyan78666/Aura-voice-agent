@@ -61,101 +61,23 @@ The dashboard provides:
 
 ---
 
+
 ## 🚀 Architecture
 
 ```mermaid
 flowchart TD
-	subgraph Browser
-		A[React Frontend] -- WebSocket --> B[Python Backend]
-		A -- REST/WS --> B
+  subgraph Browser
+    A[React Frontend] -- WebSocket --> B[Python Backend]
+  end
+  B -- DB --> C[(Supabase PostgreSQL)]
+  B -- API --> D[Ollama Cloud]
+  B -- API --> E[Tavily API]
+  B -- API --> F[Gmail API]
+  B -- API --> G[Langfuse]
+  B -- Local --> H[ChromaDB]
+```
 
-	# 🎙️ Aura Voice Agent
-
-	A premium, real-time voice-controlled AI assistant for the web. Seamless "Siri-like" experience with Hindi, English, and Hinglish support. Built with React (TanStack Start), Python, and Ollama Cloud.
-
-	👉 **Live Demo:** [aura-voice-agent.sufiyankhan7339.workers.dev](https://aura-voice-agent.sufiyankhan7339.workers.dev/)
-
-	---
-	![Aura Dashboard](./dashboard_preview.png)
-
-	## 🖥️ Dashboard & Interface
-
-	The dashboard provides:
-
-	- 🎙️ **Voice Visualizer**: Real-time audio input display.
-	- 🛠️ **ToolGrid**: Status for all registered tools (Weather, Alarms, File Opener, News, Web Search, RAG, Email, Calculator, Date/Time).
-	- 📜 **Observation Log**: Live agent, tool, and user events.
-	- ⚙️ **Status Bar**: Shows environment, connection, and agent state.
-
-	## ✨ Features
-
-	- 🧠 **Persistent Memory**: Remembers your name, preferences, and conversation history (PostgreSQL via Supabase).
-	- 👤 **User Profile**: Auto-detects and permanently stores your name across sessions.
-	- 🌐 **Web Search**: Real-time search via Tavily API.
-	- 📂 **RAG (Document Intelligence)**: Upload and chat with your PDFs using HuggingFace embeddings and ChromaDB. Documents persist in PostgreSQL.
-	- 📧 **Email**: Read/send emails via Gmail API (OAuth2). No SMTP — works on cloud.
-	- ⏰ **Alarms**: Set/list/cancel alarms by voice. Persistent in PostgreSQL, fires browser beep + TTS.
-	- 🧮 **Calculator**: Math and unit calculations via LLM.
-	- 🗣️ **Multilingual**: English, Hindi, Hinglish with smart language detection.
-	- 📊 **Observability**: Execution tracing and token monitoring via Langfuse.
-
-	## 🛠️ Tech Stack
-
-	| Layer | Technology |
-	|-------|-----------|
-	| **Frontend** | React (TanStack Start), TailwindCSS, Lucide Icons |
-	| **Frontend Hosting** | Cloudflare Pages |
-	| **Backend** | Python (Async WebSocket Server) |
-	| **Backend Hosting** | Google Cloud Run |
-	| **Database** | Supabase PostgreSQL (memory, alarms, docs, user profile) |
-	| **AI Models** | Ollama Cloud (Gemma 4 31B, Qwen 3.5 122B) |
-	| **Embeddings** | HuggingFace BAAI/bge-small-en-v1.5 |
-	| **STT** | Web Speech API (hi-IN) |
-	| **TTS** | Browser Speech Synthesis |
-	| **Email** | Gmail API (OAuth2) |
-	| **Web Search** | Tavily API |
-	| **Observability** | Langfuse |
-
-	## 🧩 Registered Tools
-
-	| Tool | File | Description |
-	|------|------|-------------|
-	| Weather | weather_tool.py | Live weather by city |
-	| Alarms | alarm_tool.py | Set/list/cancel alarms (persistent, PostgreSQL) |
-	| File Opener | file_opener_tool.py | Open local files by name |
-	| News | news_tool.py | Latest headlines (Google News RSS) |
-	| Web Search | websearch_tool.py | Real-time search (Tavily) |
-	| RAG | rag_tool.py | Query uploaded documents (HuggingFace + ChromaDB) |
-	| Email | email_tool.py | Read/send mail via Gmail API |
-	| Calculator | calculator_tool.py | Math/unit calculations |
-	| Date/Time | datetime_tool.py | Current date, time, weekday (IST) |
-
-	---
-
-	## 🚀 Architecture
-	```
-
-	User Browser
-	│
-	├──► Cloudflare Pages (React Frontend)
-	│         │
-	│         └──► WebSocket (wss://)
-	│                    │
-	└──────────────► Google Cloud Run (Python Backend)
-	│
-	├──► Supabase PostgreSQL
-	│     ├── memory (conversation history)
-	│     ├── user_profile (name, preferences)
-	│     ├── alarms (persistent alarms)
-	│     └── documents (uploaded PDFs)
-	│
-	├──► Ollama Cloud (LLM)
-	├──► Tavily API (Web Search)
-	├──► Gmail API (Email)
-	└──► Langfuse (Observability)
-
-	```
-	---
+---
 
 	## 🚦 Quick Start (Local Development)
 
