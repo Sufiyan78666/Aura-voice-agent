@@ -260,7 +260,11 @@ def _run_set_alarm(minutes=None, hour=None, minute=0, label="Alarm"):
 def _run_news(text):
     from news_tool import get_news_items
     q = re.sub(r"\b(latest|news|headlines|khabar|samachar|न्यूज़|न्यूज|हैडलाइंस|खबर|समाचार|tell|me|about|the)\b", " ", text, flags=re.IGNORECASE).strip()
-    items = get_news_items(country="India", language="en", max_items=3, query=q if q else None)
+    city = extract_city(text)
+    query = q or (f"{city} news" if city else None)
+    items = get_news_items(country="India", language="en", max_items=3, query=query)
+    if not items and query:
+        items = get_news_items(country="India", language="en", max_items=3, query=None)
     return "Top headlines: " + "; ".join(items) if items else "Could not fetch news."
 
 def _run_email_count():
