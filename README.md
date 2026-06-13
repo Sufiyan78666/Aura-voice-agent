@@ -1,12 +1,17 @@
-# 🎙️ Aura Voice Agent
+---
+title: Aura Voice Agent Backend
+emoji: 🎙️
+colorFrom: purple
+colorTo: blue
+sdk: docker
+pinned: false
+app_port: 7860
+---
 
-
-A premium, real-time voice-controlled AI assistant for the web. Seamless "Siri-like" experience with Hindi, English, and Hinglish support. Built with React (TanStack Start), Python, and Ollama Cloud.
-
-👉 **Live Demo:** [aura-voice-agent.sufiyankhan7339.workers.dev](https://aura-voice-agent.sufiyankhan7339.workers.dev/)
+# Aura 01 Voice Agent - WebSocket Backend
+Real-time voice AI assistant backend with WebSocket, RAG, and 9 tools.
 
 ---
-![Aura Dashboard](./dashboard_preview.png)
 
 ## 🖥️ Dashboard & Interface
 
@@ -36,11 +41,11 @@ The dashboard provides:
 | Layer         | Technology |
 |-------------- |-----------|
 | **Frontend**  | React (TanStack Start), TailwindCSS, Lucide Icons |
-| **Backend**   | Python (WebSocket server, tool modules) |
+| **Backend**   | Python (WebSocket server), HuggingFace Spaces (Docker) |
 | **Database**  | PostgreSQL (alarms, memory, docs) or local JSON |
 | **AI Models** | Ollama Cloud (Gemma 4, Qwen 3.5), HuggingFace embeddings |
-| **STT**       | faster-whisper (offline), Web Speech API |
-| **TTS**       | edge-tts, browser Speech Synthesis |
+| **STT**       | Web Speech API (browser-based) |
+| **TTS**       | Browser Speech Synthesis |
 | **Email**     | Gmail API (OAuth2) |
 | **Web Search**| Tavily API, Serper API |
 | **Observability** | Langfuse |
@@ -67,7 +72,9 @@ The dashboard provides:
 ```mermaid
 flowchart TD
   subgraph Browser
-    A[React Frontend] -- WebSocket --> B[Python Backend]
+    A[Cloudflare Pages
+React Frontend] -- wss:// --> B[HuggingFace Spaces
+Python Backend]
   end
   B -- DB --> C[(Supabase PostgreSQL)]
   B -- API --> D[Ollama Cloud]
@@ -139,11 +146,11 @@ flowchart TD
 
 	## ☁️ Production Deployment
 
-	### Backend (Google Cloud Run)
-	1. Install Google Cloud CLI: https://cloud.google.com/sdk/docs/install
-	2. Run `gcloud init` and select your project
-	3. Deploy: `gcloud run deploy aura-voice-agent --source . --region us-central1 --platform managed --allow-unauthenticated --port 8765 --memory 2Gi --timeout 3600`
-	4. Set environment variables via `gcloud run services update` or `--env-vars-file`
+	### Backend (HuggingFace Spaces)
+	1. Create a Docker Space at https://huggingface.co/spaces
+	2. Push backend code via git
+	3. Set environment variables in Space Settings → Secrets
+	4. Backend URL: `wss://YOUR_USERNAME-aura-backend.hf.space`
 
 	### Database (Supabase)
 	1. Create free project at https://supabase.com
